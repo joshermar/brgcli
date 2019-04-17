@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
 import curses
+import time
 
-# Set max brightness value
 max_brightness = 7500
 
-# Read initial brightness value
-with open('/sys/class/backlight/intel_backlight/brightness', 'r') as file:
-    brightness = file.read()
+path = '/sys/class/backlight/intel_backlight/'
 
-brightness = round(int(brightness) / 25) * 25
+with open(f'{path}/max_brightness', 'r') as max_file:
+    max_brg = int(max_file.read())
 
 try:
     # get the curses screen window
@@ -22,42 +21,48 @@ try:
     curses.cbreak()
 
     # map arrow keys to special values
-    screen.keypad(True)
+    screen.keypad(1)
 
-    # Initial screen... :/
-    screen.addstr(
-        0, 0, 'Current brightness: ' + str(brightness), curses.A_REVERSE)
+    # Do not wait for input
+    screen.nodelay(1)
 
     while True:
+        # First, get the current brightness:
+        with open(f'{path}/brightness', 'r') as file:
+            brightness = file.read()
+
+        # Check for keypresses:
         char = screen.getch()
-        if char == ord('q'):
-            break
-        elif char == curses.KEY_PPAGE:
-            x = 250
-        elif char == curses.KEY_NPAGE:
-            x = -250
-        elif char == curses.KEY_UP:
-            x = 25
-        elif char == curses.KEY_DOWN:
-            x = -25
-        else:
-            continue
+        if char != -1:
+            if char == ord('q'):
+                break
+            elif char == curses.KEY_PPAGE:
+                x = 250
+            elif char == curses.KEY_NPAGE:
+                x = -250
+            elif char == curses.KEY_UP:
+                x = 25
+            elif char == curses.KEY_DOWN:
+                x = -25
 
-        # make sure it doesnt go over max or under 0
-        brightness += x
-        if brightness > max_brightness:
-            brightness = max_brightness
-        elif brightness < 0:
-            brightness = 0
+            # Add increment (x) and clamp to multiples of 25
+            brightness = str(int(brightness) // 25 * 25 + x)
 
-        # Write the value to the file and display new current value
-        with open(
-            '/sys/class/backlight/intel_backlight/brightness', 'w'
-        ) as file:
-            file.write(str(brightness))
+            # We don't want to touch the file if unless we have a valid value
+            if int(brightness) > max_brg:
+                brightness = str(max_brightness)
+            elif int(brightness) < 0:
+                brightness = '0'
+
+            # Write the value to the file
+            with open(f'{path}/brightness', 'w') as file:
+                file.write(brightness)
+
         screen.erase()
         screen.addstr(
-            0, 0, 'Current brightness: ' + str(brightness), curses.A_REVERSE)
+            0, 0, brightness, curses.A_REVERSE)
+
+        time.sleep(0.01)
 
 except KeyboardInterrupt:
     pass
@@ -65,6 +70,6 @@ except KeyboardInterrupt:
 finally:
     # shut down cleanly
     curses.nocbreak()
-    curses.echo()
     curses.curs_set(1)
+    curses.echo()
     curses.endwin()
