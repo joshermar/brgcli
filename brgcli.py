@@ -35,8 +35,6 @@ try:
         screen.erase()
         screen.addstr(0, 0, str(brightness), curses.A_REVERSE)
 
-        x = 0
-
         # Check for relevant keypresses
         char = screen.getch()
 
@@ -50,11 +48,10 @@ try:
             x = 25
         elif char == curses.KEY_DOWN:
             x = -25
-
-        if (x > 0 and brightness == 0 or x < 0 and brightness == max_brg):
-            time.sleep(0.5)
-
         else:
+            x = 0
+
+        if x < 0 and brightness > 0 or x > 0 and brightness < max_brg:
             # Clamp brightness to multiple of 25, add x
             brightness = brightness // 25 * 25 + x
 
@@ -62,11 +59,13 @@ try:
             if brightness > max_brg:
                 brightness = max_brg
             elif brightness < 0:
-                brightness = '0'
+                brightness = 0
 
             # Write the value to the file
             with open(f'{path}/brightness', 'w') as file:
                 file.write(str(brightness))
+
+        time.sleep(0.03)
 
 except KeyboardInterrupt:
     pass
