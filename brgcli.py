@@ -38,40 +38,43 @@ try:
         # Check for relevant keypresses
         char = screen.getch()
 
-        if char == ord('q'):
-            break
-        elif char == curses.KEY_PPAGE:
-            x = 250
-        elif char == curses.KEY_NPAGE:
-            x = -250
-        elif char == curses.KEY_UP:
-            x = 25
-        elif char == curses.KEY_DOWN:
-            x = -25
-        else:
-            x = 0
-
-        if x < 0 and brightness > 0 or x > 0 and brightness < max_brg:
-            # Clamp brightness to multiple of 25, add x
-            brightness = brightness // 25 * 25 + x
-
-            # Cap brightness values
-            if brightness > max_brg:
-                brightness = max_brg
-            elif brightness < 0:
-                brightness = 0
-
-            # Write the value to the file
-            with open(f'{path}/brightness', 'w') as file:
-                file.write(str(brightness))
-
-        else:
-            # Reread brigthness
+        if char == -1:
+            # Only update brightness from file while no keys are being pressed
             with open(f'{path}/brightness', 'r') as file:
                 brightness = int(file.read())
 
-        time.sleep(0.03)
+            # Speed throttle for "no keys pressed"
+            time.sleep(0.1)
 
+        else:
+            if char == ord('q'):
+                break
+            elif char == curses.KEY_PPAGE:
+                x = 250
+            elif char == curses.KEY_NPAGE:
+                x = -250
+            elif char == curses.KEY_UP:
+                x = 25
+            elif char == curses.KEY_DOWN:
+                x = -25
+
+            # No point in trying to increment if max or decrament if 0
+            if x < 0 and brightness > 0 or x > 0 and brightness < max_brg:
+                # Clamp brightness to multiple of 25, add x
+                brightness = brightness // 25 * 25 + x
+
+                # Cap brightness values
+                if brightness > max_brg:
+                    brightness = max_brg
+                elif brightness < 0:
+                    brightness = 0
+
+                # Write the value to the file
+                with open(f'{path}/brightness', 'w') as file:
+                    file.write(str(brightness))
+
+            # Speed throttle for "keys pressed". Faster than "no keys pressed"
+            time.sleep(0.03)
 
 except KeyboardInterrupt:
     pass
