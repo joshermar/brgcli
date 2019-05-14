@@ -51,13 +51,14 @@ try:
         elif char == curses.KEY_DOWN:
             x = -25
 
-        if not (brightness == 0 and x < 0 or
-                brightness == max_brg and x > 0):
+        if (x > 0 and brightness == 0 or x < 0 and brightness == max_brg):
+            time.sleep(0.5)
 
+        else:
             # Clamp brightness to multiple of 25, add x
             brightness = brightness // 25 * 25 + x
 
-            # Cap increment
+            # Cap brightness values
             if brightness > max_brg:
                 brightness = max_brg
             elif brightness < 0:
@@ -66,8 +67,6 @@ try:
             # Write the value to the file
             with open(f'{path}/brightness', 'w') as file:
                 file.write(str(brightness))
-
-        time.sleep(0.05)
 
 except KeyboardInterrupt:
     pass
