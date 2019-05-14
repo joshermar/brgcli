@@ -51,7 +51,7 @@ try:
         elif char == curses.KEY_DOWN:
             x = -25
 
-        if not (brightness < 1 and x < 0 or
+        if not (brightness == 0 and x < 0 or
                 brightness == max_brg and x > 0):
 
             # Clamp brightness to multiple of 25, add x
