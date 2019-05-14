@@ -6,8 +6,8 @@ import time
 
 path = '/sys/class/backlight/intel_backlight'
 
-with open(f'{path}/max_brightness', 'r') as max_file:
-    max_brg = int(max_file.read())
+with open(f'{path}/max_brightness', 'r') as file:
+    max_brg = int(file.read())
 
 try:
     # get the curses screen window
@@ -27,11 +27,11 @@ try:
 
     testvar = 0
 
-    while True:
-        # Get the current brightness
-        with open(f'{path}/brightness', 'r') as file:
-            brightness = int(file.read())
+    # Get the initial brightness
+    with open(f'{path}/brightness', 'r') as file:
+        brightness = int(file.read())
 
+    while True:
         screen.erase()
         screen.addstr(0, 0, str(brightness), curses.A_REVERSE)
 
@@ -65,7 +65,13 @@ try:
             with open(f'{path}/brightness', 'w') as file:
                 file.write(str(brightness))
 
+        else:
+            # Reread brigthness
+            with open(f'{path}/brightness', 'r') as file:
+                brightness = int(file.read())
+
         time.sleep(0.03)
+
 
 except KeyboardInterrupt:
     pass
