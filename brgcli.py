@@ -1,98 +1,88 @@
 #!/usr/bin/env python3
-
 import curses
 import time
 
 
-path = '/sys/class/backlight/intel_backlight'
+def get_value(filename, path='/sys/class/backlight/intel_backlight'):
+    """Return an int from path/filename"""
+    with open(f'{path}/{filename}', 'r') as file:
+        return int(file.read())
 
-with open(f'{path}/max_brightness', 'r') as file:
-    max_brg = int(file.read())
+
+def set_value(value, filename, path='/sys/class/backlight/intel_backlight'):
+    """Writes value to path/filename.
+    Obviously, value should be a string of an acceptable value.
+    """
+    with open(f'{path}/{filename}', 'w') as file:
+        file.write(str(value))
+
+
+def clamp_and_bound(brg_value, increment):
+    """Returns int, divisble by 25 between 0 and max (inclusive).
+    brg_value can be any value but increment should already be divisble by 25.
+    """
+    brg_value = brg_value // 25 * 25 + increment
+    if brg_value > max_brg:
+        brg_value = max_brg
+    elif brg_value < 0:
+        brg_value = 0
+    return brg_value
+
+
+# char values conveniently maped to increments
+char_mappings = {
+    curses.KEY_PPAGE: 250,
+    curses.KEY_NPAGE: -250,
+    curses.KEY_UP: 25,
+    curses.KEY_DOWN: -25}
 
 try:
-    # get the curses screen window
+    # Set up curses screen window
     screen = curses.initscr()
 
-    # turn off input echoing, disable cursor, and respond to keys
-    # immediately (don't wait for enter)
-    curses.noecho()
-    curses.curs_set(0)
-    curses.cbreak()
+    curses.noecho()     # Disable input echoing
+    curses.curs_set(0)  # Disable cursor
+    curses.cbreak()     # don't wait for enter
+    screen.keypad(1)    # Map arrow keys to special values
+    screen.nodelay(1)   # Do not wait for input
 
-    # map arrow keys to special values
-    screen.keypad(1)
+    # Initial values
+    max_brg = get_value('max_brightness')
+    brg_value = get_value('brightness')
+    display_str = str(brg_value)
 
-    # Do not wait for input
-    screen.nodelay(1)
+    char = -1
 
-    testvar = 0
-
-    # Get the initial brightness and display str
-    with open(f'{path}/brightness', 'r') as file:
-        display_str = file.read()
-        brg_value = int(display_str)
-
-    while True:
+    while char not in (81, 113):
         screen.addstr(0, 0, display_str, curses.A_REVERSE)
 
-        # Check for relevant keypresses
         char = screen.getch()
 
         if char == -1:
-            time.sleep(0.1)
+            brg_value = get_value('brightness')
+            display_str = str(brg_value)
 
-            # Only update brightness from file while no keys are being pressed
-            with open(f'{path}/brightness', 'r') as file:
-                new_str = file.read()
-
-            if new_str != display_str:
-                display_str = new_str
-                brg_value = int(display_str)
-                screen.erase()
+            time.sleep(0.1)   # Speed throttle for "no-keys-pressed"
+            screen.erase()
 
         else:
-            if char == ord('q'):
-                break
-            elif char == curses.KEY_PPAGE:
-                x = 250
-            elif char == curses.KEY_NPAGE:
-                x = -250
-            elif char == curses.KEY_UP:
-                x = 25
-            elif char == curses.KEY_DOWN:
-                x = -25
-            else:
-                x = 0
+            increment = char_mappings.get(char)
 
-            if x != 0:
-                # No point in trying to increment max or decrament 0
-                if x > 0 and brg_value == max_brg:
+            if increment:
+                # Shows MAX/MIN message if trying to go out of bounds
+                if increment > 0 and brg_value == max_brg:
                     display_str = 'MAX'
-
-                elif x < 0 and brg_value == 0:
+                elif increment < 0 and brg_value == 0:
                     display_str = 'MIN'
 
                 else:
-                    # Clamp brightness to multiple of 25, add x
-                    brg_value = brg_value // 25 * 25 + x
-
-                    # Cap brightness values
-                    if brg_value > max_brg:
-                        brg_value = max_brg
-                    elif brg_value < 0:
-                        brg_value = 0
-
-                    # Write the value to the file
-                    with open(f'{path}/brightness', 'w') as file:
-                        file.write(str(brg_value))
-
-                    # Update display string
+                    brg_value = clamp_and_bound(brg_value, increment)
+                    set_value(brg_value, 'brightness')
                     display_str = str(brg_value)
 
                 screen.erase()
 
-            # Speed throttle for "keys pressed". Faster than "no keys pressed"
-            time.sleep(0.03)
+            time.sleep(0.03)    # Speed throttle for "keys pressed"
 
 except KeyboardInterrupt:
     pass
