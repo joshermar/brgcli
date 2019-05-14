@@ -27,24 +27,28 @@ try:
 
     testvar = 0
 
-    # Get the initial brightness
+    # Get the initial brightness and display str
     with open(f'{path}/brightness', 'r') as file:
-        brightness = int(file.read())
+        display_str = file.read()
+        brg_value = int(display_str)
 
     while True:
-        screen.erase()
-        screen.addstr(0, 0, str(brightness), curses.A_REVERSE)
+        screen.addstr(0, 0, display_str, curses.A_REVERSE)
 
         # Check for relevant keypresses
         char = screen.getch()
 
         if char == -1:
+            time.sleep(0.1)
+
             # Only update brightness from file while no keys are being pressed
             with open(f'{path}/brightness', 'r') as file:
-                brightness = int(file.read())
+                new_str = file.read()
 
-            # Speed throttle for "no keys pressed"
-            time.sleep(0.1)
+            if new_str != display_str:
+                display_str = new_str
+                brg_value = int(display_str)
+                screen.erase()
 
         else:
             if char == ord('q'):
@@ -57,21 +61,35 @@ try:
                 x = 25
             elif char == curses.KEY_DOWN:
                 x = -25
+            else:
+                x = 0
 
-            # No point in trying to increment if max or decrament if 0
-            if x < 0 and brightness > 0 or x > 0 and brightness < max_brg:
-                # Clamp brightness to multiple of 25, add x
-                brightness = brightness // 25 * 25 + x
+            if x != 0:
+                # No point in trying to increment max or decrament 0
+                if x > 0 and brg_value == max_brg:
+                    display_str = 'MAX'
 
-                # Cap brightness values
-                if brightness > max_brg:
-                    brightness = max_brg
-                elif brightness < 0:
-                    brightness = 0
+                elif x < 0 and brg_value == 0:
+                    display_str = 'MIN'
 
-                # Write the value to the file
-                with open(f'{path}/brightness', 'w') as file:
-                    file.write(str(brightness))
+                else:
+                    # Clamp brightness to multiple of 25, add x
+                    brg_value = brg_value // 25 * 25 + x
+
+                    # Cap brightness values
+                    if brg_value > max_brg:
+                        brg_value = max_brg
+                    elif brg_value < 0:
+                        brg_value = 0
+
+                    # Write the value to the file
+                    with open(f'{path}/brightness', 'w') as file:
+                        file.write(str(brg_value))
+
+                    # Update display string
+                    display_str = str(brg_value)
+
+                screen.erase()
 
             # Speed throttle for "keys pressed". Faster than "no keys pressed"
             time.sleep(0.03)
