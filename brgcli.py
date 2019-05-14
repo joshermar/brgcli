@@ -32,6 +32,9 @@ try:
         with open(f'{path}/brightness', 'r') as file:
             brightness = int(file.read())
 
+        screen.erase()
+        screen.addstr(0, 0, str(brightness), curses.A_REVERSE)
+
         x = 0
 
         # Check for relevant keypresses
@@ -54,7 +57,7 @@ try:
             # Clamp brightness to multiple of 25, add x
             brightness = brightness // 25 * 25 + x
 
-            # Cap the increment
+            # Cap increment
             if brightness > max_brg:
                 brightness = max_brg
             elif brightness < 0:
@@ -64,8 +67,6 @@ try:
             with open(f'{path}/brightness', 'w') as file:
                 file.write(str(brightness))
 
-        screen.erase()
-        screen.addstr(0, 0, str(brightness), curses.A_REVERSE)
         time.sleep(0.05)
 
 except KeyboardInterrupt:
