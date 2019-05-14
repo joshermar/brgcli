@@ -25,6 +25,8 @@ try:
     # Do not wait for input
     screen.nodelay(1)
 
+    testvar = 0
+
     while True:
         # Get the current brightness
         with open(f'{path}/brightness', 'r') as file:
@@ -35,38 +37,36 @@ try:
         # Check for relevant keypresses
         char = screen.getch()
 
-        if char != -1:
-            if char == ord('q'):
-                break
-            elif char == curses.KEY_PPAGE:
-                x = 250
-            elif char == curses.KEY_NPAGE:
-                x = -250
-            elif char == curses.KEY_UP:
-                x = 25
-            elif char == curses.KEY_DOWN:
-                x = -25
+        if char == ord('q'):
+            break
+        elif char == curses.KEY_PPAGE:
+            x = 250
+        elif char == curses.KEY_NPAGE:
+            x = -250
+        elif char == curses.KEY_UP:
+            x = 25
+        elif char == curses.KEY_DOWN:
+            x = -25
 
-            if not (brightness < 1 and x < 0 or
-                    brightness == max_brg and x > 0):
+        if not (brightness < 1 and x < 0 or
+                brightness == max_brg and x > 0):
 
-                # Clamp brightness to multiple of 25, add x
-                brightness = brightness // 25 * 25 + x
+            # Clamp brightness to multiple of 25, add x
+            brightness = brightness // 25 * 25 + x
 
-                # This allows larger increments to stop at max or min
-                if brightness > max_brg:
-                    brightness = str(max_brg)
-                elif brightness < 0:
-                    brightness = '0'
+            # Cap the increment
+            if brightness > max_brg:
+                brightness = max_brg
+            elif brightness < 0:
+                brightness = '0'
 
-                # Write the value to the file
-                with open(f'{path}/brightness', 'w') as file:
-                    file.write(str(brightness))
+            # Write the value to the file
+            with open(f'{path}/brightness', 'w') as file:
+                file.write(str(brightness))
 
         screen.erase()
         screen.addstr(0, 0, str(brightness), curses.A_REVERSE)
-
-        time.sleep(0.02)
+        time.sleep(0.05)
 
 except KeyboardInterrupt:
     pass
